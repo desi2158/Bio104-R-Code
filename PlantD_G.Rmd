@@ -1,0 +1,155 @@
+---
+title: 'Lab 5: Plant Differentiation and Growth'
+output: word_document 
+---
+## Pre-Setup
+
+Before we begin to use R today, you'll want to calculate the average of your light and dark seedlings at each interval (2 days, 4 days, and 6 days). To make this simpler, you can calculate these averages using Google Sheets. Once you have these numbers, load them into the class data sheet (your TA will provide this). This data sheet is what you'll use during this lab.
+
+## 1. Load Data Into R
+
+We will use a similar procedure as the last lab to load data into R so that we can work with it.
+
+* Make a new project in a new folder and open a new script.
+* Next, load all libraries you will need: `ggplot2`, `gsheet`, and  `dplyr`
+
+For this lab we will provide you with the directions of what to do by showing you the comments you should enter in you R script.
+
+* Copy the comment lines into your script
+* Enter the necessary code based on the previous lab. In any case where you have not seen the necessary code before, it is provided.
+
+```{r load1}
+# Load the libraries ggplot2, gsheet, and dyplyr. 
+```
+
+```{r load2, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(gsheet)
+library(dplyr)
+```
+
+Next, load in the data. Today's data is found at:
+
+https://docs.google.com/spreadsheets/d/1MOkh3SNsuuTixjRFi4ptYmjimUJ9rGXIta1iJDjre9k/edit?usp=sharing
+
+```{r load3}
+# Assign website address for the data to a variable
+```
+
+```{r load4, echo=FALSE}
+url <- 'https://docs.google.com/spreadsheets/d/1MOkh3SNsuuTixjRFi4ptYmjimUJ9rGXIta1iJDjre9k/edit?usp=sharing'
+```
+
+```{r }
+# Load the data from google sheets
+```
+
+```{r load5, echo=FALSE}
+plant_data <- gsheet2tbl(url)
+```
+
+Remember, once we have our data in, it is always good to check to make sure the data was imported correctly. Use 'head' to check your imported data. 
+
+```{r head, eval=FALSE}
+# Check your data looks right (first lines only)
+head(plant_data)
+```
+## 2. Find The Average Height for the Light-Grown Seedlings
+
+We are interested in comparing the growth rate of seedlings in light and dark conditions. We will do this in a very similar way to what we did last class with the function `group_by` in the package `dplyr`. 
+ 
+```{r gb}
+# Group data by exp, generation, exposure, and day
+grouped_plant_data <- group_by(plant_data, exposure, day)
+```
+
+Next we calculate the mean for each group.  
+
+```{r sm}
+# Calculate the mean height of the seedlings at each interval
+
+plant_data_means <- summarise(grouped_plant_data,mean=mean(height, na.rm=T))
+```
+
+This code is just like you used last time, with the addition of `na.rm=T`. This additional code tells R to ignore areas in the data set that had no values entered. For example, if no seedlings grew under your dark condition, you would not record any data under height for that experiment. By using this code, R can now ignore these blank spaces and calculate the mean correctly. 
+
+Check the first few lines of your data using `head`
+
+```{r h, eval=FALSE}
+head(plant_data_means)
+```
+
+## 4. Graphing the seedling Data
+
+Just like last time, we are going to use `ggplot` to graph the data. Since we want to compare the seedlings grown under light and dark conditions, we are going to graph both sets of data together. 
+
+### First create the base layer of your plot
+
+```{r plot1}
+# Make the base layer of your plot
+ggplot(plant_data_means, 
+       aes(x=day, y=mean, color=day))
+```
+
+
+
+### Second add the bars your plot 
+
+To graph a bar plot instead of a line graph, you will use the code 'geom_bar'. This tells ggplot that you want to make a bar plot.
+
+* aes(fill) tells ggplot what columns you are interested in graphing. In this case, we want to graph the two exposures, light and dark.
+* position tells ggplot where you want the bars. In this case, we want them right next to each other (instead of stacked) so we use "dodge".
+
+```{r plot2}
+# Add the bars to your plot
+ggplot(plant_data_means, 
+       aes(x=day, y=mean)) + geom_col(aes(fill = exposure), position="dodge")
+```
+
+### Third add standard deviation bars to your plot
+
+Now that we can see that there are differences in seedling heights between the two different growing conditions, we are interested in understanding the variance in our data. Variance is how much the individual data points differ from the overall mean. For example, if we saw seedling heights of 3, 2.9, 3, and 3.1, we would be pretty confident that our mean of 3 accurately represents the data. However, if we had seedling heights of .5, 5.5, 2, and 4, we wouldn't be sure if our average of 3 was a good representation of the data. To see how much your data varies, you will first want to calculate the standard deviation (how much it deviates from the mean). 
+
+```{r}
+# Calculate the standard deviation of the seedlings at each interval
+
+plant_data_sd <- summarise(grouped_plant_data, mean=mean(height, na.rm=T), sd=sd(height, na.rm=T))
+```
+
+Next add the standard deviation bars to your graphs*
+
+*ymin-sd and ymax+sd tells R to allow your y-axis to include your standard deviation bars. Otherwise, your bars may get cut off. 
+*width controls how wide your standard deviation bars are (a higher width would make them bigger on the graph)
+*position=position_dodge positions your standard deviation bars to the center of each column
+
+```{r plot3}
+#Add standard deviation bars
+
+ggplot(plant_data_sd, aes(x=day, y=mean, fill=exposure)) + 
+  geom_col(position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,
+                 position=position_dodge(1.75)) 
+ 
+
+
+```
+
+### Fourth add labels to your graph
+Just like last class, you'll want to clean up your graph and make it look professional.
+
+* To label the axes make a new layer using `labs(x="", y="", color="")`. Enter labels for the x axis, y axis, and legend in the quotes.
+
+```{r}
+
+#Label your plot and change axes titles
+
+ggplot(plant_data_sd, aes(x=day, y=mean, fill=exposure)) + 
+  geom_col(position=position_dodge()) +
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,
+                 position=position_dodge(1.75)) +
+labs(x="Forrester x label", y="Forrester y label",
+       fill="Forrester change legend title")
+```
+
+Under which condition did the seedlings grow better? Light or dark? 
+What do your standard deviation bars look like? What does it mean to have a large standard deviation bar? 
